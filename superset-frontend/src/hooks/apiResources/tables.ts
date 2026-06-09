@@ -100,23 +100,57 @@ type Params = Omit<FetchTablesQueryParams, 'forceRefresh'> & {
   supportsSchemas?: boolean;
 };
 
+const TABLES_PAGE_SIZE = 100;
+
 const tableApi = api.injectEndpoints({
   endpoints: builder => ({
     tables: builder.query<Data, FetchTablesQueryParams>({
       providesTags: ['Tables'],
-      query: ({ dbId, catalog, schema, forceRefresh }) => ({
-        endpoint: `/api/v1/database/${dbId ?? 'undefined'}/tables/`,
-        // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-        urlParams: {
-          force: forceRefresh,
-          schema_name: schema ? encodeURIComponent(schema) : '',
-          ...(catalog && { catalog_name: catalog }),
-        },
-        transformResponse: ({ json }: QueryResponse) => ({
-          options: json.result,
-          hasMore: json.count > json.result.length,
-        }),
-      }),
+      async queryFn(args, _queryApi, _extraOptions, baseQuery) {
+        const { dbId, catalog, schema, forceRefresh } = args;
+        let page = 0;
+        let allOptions: Table[] = [];
+
+        // Paginate through all results so the full table set is available
+        // regardless of the API page size.
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          // eslint-disable-next-line no-await-in-loop
+          const result = await baseQuery({
+            endpoint: `/api/v1/database/${dbId ?? 'undefined'}/tables/`,
+            urlParams: {
+              force: forceRefresh,
+              schema_name: schema ? encodeURIComponent(schema) : '',
+              ...(catalog && { catalog_name: catalog }),
+              page,
+              page_size: TABLES_PAGE_SIZE,
+            },
+            transformResponse: ({ json }: QueryResponse) => json,
+          });
+
+          if (result.error) {
+            return { error: result.error };
+          }
+
+          const { count, result: tables } = result.data as {
+            count: number;
+            result: Table[];
+          };
+          allOptions = allOptions.concat(tables);
+
+          if (allOptions.length >= count || tables.length === 0) {
+            break;
+          }
+          page += 1;
+        }
+
+        return {
+          data: {
+            options: allOptions,
+            hasMore: false,
+          },
+        };
+      },
       serializeQueryArgs: ({ queryArgs: { dbId, schema } }) => ({
         dbId,
         schema,

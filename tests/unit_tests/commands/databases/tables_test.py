@@ -291,3 +291,84 @@ def test_tables_without_catalog(
         cache=database_without_catalog.table_cache_enabled,
         cache_timeout=database_without_catalog.table_cache_timeout,
     )
+
+
+def test_tables_with_pagination(
+    mocker: MockerFixture,
+    database_with_catalog: MagicMock,
+) -> None:
+    """
+    Test that page and page_size slice the result list while count stays the same.
+    """
+    mocker.patch.object(
+        security_manager,
+        "get_datasources_accessible_by_user",
+        side_effect=[
+            {
+                DatasourceName("table1", "schema1", "catalog1"),
+                DatasourceName("table2", "schema1", "catalog1"),
+            },
+            {DatasourceName("view1", "schema1", "catalog1")},
+            set(),
+        ],
+    )
+
+    db_mock = mocker.patch("superset.commands.database.tables.db")
+    db_mock.session.query().filter().options().all.return_value = []
+
+    payload = TablesDatabaseCommand(
+        1, "catalog1", "schema1", False, page=0, page_size=2
+    ).run()
+
+    assert payload["count"] == 3
+    assert len(payload["result"]) == 2
+
+    # Second page should contain the remaining item
+    mocker.patch.object(
+        security_manager,
+        "get_datasources_accessible_by_user",
+        side_effect=[
+            {
+                DatasourceName("table1", "schema1", "catalog1"),
+                DatasourceName("table2", "schema1", "catalog1"),
+            },
+            {DatasourceName("view1", "schema1", "catalog1")},
+            set(),
+        ],
+    )
+
+    payload = TablesDatabaseCommand(
+        1, "catalog1", "schema1", False, page=1, page_size=2
+    ).run()
+
+    assert payload["count"] == 3
+    assert len(payload["result"]) == 1
+
+
+def test_tables_without_pagination_returns_all(
+    mocker: MockerFixture,
+    database_with_catalog: MagicMock,
+) -> None:
+    """
+    Test that omitting page/page_size returns the full result (backward compat).
+    """
+    mocker.patch.object(
+        security_manager,
+        "get_datasources_accessible_by_user",
+        side_effect=[
+            {
+                DatasourceName("table1", "schema1", "catalog1"),
+                DatasourceName("table2", "schema1", "catalog1"),
+            },
+            {DatasourceName("view1", "schema1", "catalog1")},
+            set(),
+        ],
+    )
+
+    db_mock = mocker.patch("superset.commands.database.tables.db")
+    db_mock.session.query().filter().options().all.return_value = []
+
+    payload = TablesDatabaseCommand(1, "catalog1", "schema1", False).run()
+
+    assert payload["count"] == 3
+    assert len(payload["result"]) == 3

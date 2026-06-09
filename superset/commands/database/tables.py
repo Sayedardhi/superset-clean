@@ -46,11 +46,15 @@ class TablesDatabaseCommand(BaseCommand):
         catalog_name: str | None,
         schema_name: str | None,
         force: bool,
+        page: int | None = None,
+        page_size: int | None = None,
     ):
         self._db_id = db_id
         self._catalog_name = catalog_name
         self._schema_name = schema_name
         self._force = force
+        self._page = page
+        self._page_size = page_size
 
     def run(self) -> dict[str, Any]:
         self.validate()
@@ -163,8 +167,14 @@ class TablesDatabaseCommand(BaseCommand):
                 key=lambda item: item["value"],
             )
 
+            count = len(options)
+
+            if self._page is not None and self._page_size is not None:
+                start = self._page * self._page_size
+                options = options[start : start + self._page_size]
+
             payload = {
-                "count": len(tables) + len(views) + len(materialized_views),
+                "count": count,
                 "result": options,
             }
             return payload
