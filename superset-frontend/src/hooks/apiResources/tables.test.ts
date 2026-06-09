@@ -198,7 +198,7 @@ describe('useTables hook', () => {
     fetchMock.get(
       tableApiRoute,
       ({ url }) =>
-        url.includes(`'page':1`) || url.includes('%27page%27%3A1')
+        url.includes('page:1,')
           ? fakeHasMoreApiResultPage1
           : fakeHasMoreApiResultPage0,
       { name: tableApiRoute },
@@ -305,12 +305,7 @@ describe('useTables hook', () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
-    fetchMock.get(
-      tableApiRoute,
-      ({ url }) =>
-        url.includes(expectedSchema) ? fakeApiResult : fakeHasMoreApiResult,
-      { name: tableApiRoute },
-    );
+    fetchMock.get(tableApiRoute, fakeApiResult);
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
       count: 0,
       result: [],
@@ -337,9 +332,7 @@ describe('useTables hook', () => {
     expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
 
     rerender({ schema: 'schema2' });
-    await waitFor(() =>
-      expect(result.current.data).toEqual(expectedData),
-    );
+    await waitFor(() => expect(result.current.data).toEqual(expectedData));
     expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
 
     rerender({ schema: expectedSchema });
@@ -357,9 +350,7 @@ describe('useTables hook', () => {
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
 
     rerender({ schema: 'schema2' });
-    await waitFor(() =>
-      expect(result.current.data).toEqual(expectedData),
-    );
+    await waitFor(() => expect(result.current.data).toEqual(expectedData));
     expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(4);
 
     rerender({ schema: expectedSchema });
