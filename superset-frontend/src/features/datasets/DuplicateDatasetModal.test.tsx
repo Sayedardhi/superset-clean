@@ -115,6 +115,18 @@ test('modal does not open when dataset is null', () => {
   expect(screen.queryByText('Duplicate dataset')).not.toBeInTheDocument();
 });
 
+test('duplicate button is disabled on initial render before any input', async () => {
+  const onHide = jest.fn();
+  const onDuplicate = jest.fn();
+
+  renderModal(mockDataset, onHide, onDuplicate);
+
+  const duplicateButton = await screen.findByRole('button', {
+    name: /duplicate/i,
+  });
+  expect(duplicateButton).toBeDisabled();
+});
+
 test('duplicate button disabled after clearing input', async () => {
   const onHide = jest.fn();
   const onDuplicate = jest.fn();
