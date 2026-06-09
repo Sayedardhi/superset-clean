@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { ListViewCard } from '.';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
@@ -60,4 +60,32 @@ describe('ListViewCard', () => {
   test('renders an ImageLoader', () => {
     expect(screen.getByTestId('image-loader')).toBeVisible();
   });
+});
+
+test('renders description inside a truncated wrapper with tooltip', async () => {
+  const description = 'A long card description that should be truncated';
+  render(
+    <ListViewCard
+      title="Test Card"
+      loading={false}
+      url="/test"
+      imgURL="/thumbnail"
+      imgFallbackURL="/fallback"
+      description={description}
+      coverLeft="Left"
+      coverRight="Right"
+      actions={null}
+    />,
+  );
+
+  const descriptionEl = screen.getByText(description);
+  const wrapper = descriptionEl.closest('div');
+  expect(wrapper).toHaveStyle({
+    overflow: 'hidden',
+    'text-overflow': 'ellipsis',
+    'white-space': 'nowrap',
+  });
+
+  await userEvent.hover(descriptionEl);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(description);
 });

@@ -128,6 +128,12 @@ const CoverFooterRight = styled.div`
   text-overflow: ellipsis;
 `;
 
+const DescriptionWrapper = styled.div`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 const ThinSkeleton = styled(Skeleton)`
   h3 {
     margin: ${({ theme }) => theme.sizeUnit}px 0;
@@ -259,7 +265,11 @@ function ListViewCard({
               </div>
             </TitleContainer>
           }
-          description={description}
+          description={
+            <Tooltip title={description}>
+              <DescriptionWrapper>{description}</DescriptionWrapper>
+            </Tooltip>
+          }
           avatar={avatar || null}
         />
       )}
