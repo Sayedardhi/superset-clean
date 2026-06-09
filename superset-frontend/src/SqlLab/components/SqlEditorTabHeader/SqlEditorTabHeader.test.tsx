@@ -133,15 +133,18 @@ describe('SqlEditorTabHeader', () => {
       );
     });
 
-    test('should dispatch queryEditorSetTitle action', async () => {
+    test('should dispatch queryEditorSetTitle action via modal', async () => {
       await waitFor(() =>
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
       );
-      const expectedTitle = 'typed text';
-      const mockPrompt = jest
-        .spyOn(window, 'prompt')
-        .mockImplementation(() => expectedTitle);
       fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      const expectedTitle = 'typed text';
+      fireEvent.change(input, { target: { value: expectedTitle } });
+
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
 
       const actions = store.getActions();
       await waitFor(() =>
@@ -153,7 +156,6 @@ describe('SqlEditorTabHeader', () => {
           }),
         }),
       );
-      mockPrompt.mockClear();
     });
 
     test('should dispatch removeAllOtherQueryEditors action', async () => {
