@@ -42,7 +42,7 @@ const fakeApiResult = {
   ],
 };
 
-const fakeHasMoreApiResult = {
+const fakeHasMoreApiResultPage0 = {
   count: 4,
   result: [
     {
@@ -58,6 +58,22 @@ const fakeHasMoreApiResult = {
   ],
 };
 
+const fakeHasMoreApiResultPage1 = {
+  count: 4,
+  result: [
+    {
+      id: 3,
+      name: 'fake api result3',
+      label: 'fake api label3',
+    },
+    {
+      id: 4,
+      name: 'fake api result4',
+      label: 'fake api label4',
+    },
+  ],
+};
+
 const fakeSchemaApiResult = ['schema1', 'schema2'];
 
 const expectedData = {
@@ -65,9 +81,12 @@ const expectedData = {
   hasMore: false,
 };
 
-const expectedHasMoreData = {
-  options: fakeHasMoreApiResult.result,
-  hasMore: true,
+const expectedPaginatedData = {
+  options: [
+    ...fakeHasMoreApiResultPage0.result,
+    ...fakeHasMoreApiResultPage1.result,
+  ],
+  hasMore: false,
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -108,6 +127,8 @@ describe('useTables hook', () => {
         `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
           force: false,
           schema_name: expectedSchema,
+          page: 0,
+          page_size: 100,
         })}`,
       ).length,
     ).toBe(1);
@@ -120,6 +141,8 @@ describe('useTables hook', () => {
           `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
             force: true,
             schema_name: expectedSchema,
+            page: 0,
+            page_size: 100,
           })}`,
         ).length,
       ).toBe(1),
@@ -161,16 +184,25 @@ describe('useTables hook', () => {
         `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
           force: false,
           schema_name: unexpectedSchema,
+          page: 0,
+          page_size: 100,
         })}`,
       ).length,
     ).toBe(0);
   });
 
-  test('returns hasMore when total is larger than result size', async () => {
+  test('paginates through all pages when total exceeds page size', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema2';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
-    fetchMock.get(tableApiRoute, fakeHasMoreApiResult, { name: tableApiRoute });
+    fetchMock.get(
+      tableApiRoute,
+      ({ url }) =>
+        url.includes(`'page':1`) || url.includes('%27page%27%3A1')
+          ? fakeHasMoreApiResultPage1
+          : fakeHasMoreApiResultPage0,
+      { name: tableApiRoute },
+    );
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
       count: 0,
       result: [],
@@ -192,9 +224,9 @@ describe('useTables hook', () => {
       },
     );
     await waitFor(() =>
-      expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1),
+      expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2),
     );
-    expect(result.current.data).toEqual(expectedHasMoreData);
+    expect(result.current.data).toEqual(expectedPaginatedData);
   });
 
   test('returns cached data without api request', async () => {
@@ -306,7 +338,7 @@ describe('useTables hook', () => {
 
     rerender({ schema: 'schema2' });
     await waitFor(() =>
-      expect(result.current.data).toEqual(expectedHasMoreData),
+      expect(result.current.data).toEqual(expectedData),
     );
     expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
 
@@ -326,7 +358,7 @@ describe('useTables hook', () => {
 
     rerender({ schema: 'schema2' });
     await waitFor(() =>
-      expect(result.current.data).toEqual(expectedHasMoreData),
+      expect(result.current.data).toEqual(expectedData),
     );
     expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(4);
 

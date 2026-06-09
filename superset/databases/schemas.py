@@ -81,6 +81,8 @@ database_tables_query_schema = {
         "force": {"type": "boolean"},
         "schema_name": {"type": "string"},
         "catalog_name": {"type": "string"},
+        "page": {"type": "integer", "minimum": 0},
+        "page_size": {"type": "integer", "minimum": 1},
     },
     "required": ["schema_name"],
 }

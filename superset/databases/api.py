@@ -878,8 +878,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         force = kwargs["rison"].get("force", False)
         catalog_name = kwargs["rison"].get("catalog_name")
         schema_name = kwargs["rison"].get("schema_name", "")
+        page = kwargs["rison"].get("page")
+        page_size = kwargs["rison"].get("page_size")
 
-        command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
+        command = TablesDatabaseCommand(
+            pk, catalog_name, schema_name, force, page=page, page_size=page_size
+        )
         payload = command.run()
         return self.response(200, **payload)
 
