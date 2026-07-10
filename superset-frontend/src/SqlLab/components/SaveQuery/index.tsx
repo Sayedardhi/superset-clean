@@ -112,6 +112,7 @@ const SaveQuery = ({
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const isSaved = !!query.remoteId;
+  const isNameEmpty = label.trim().length === 0;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
   const shouldShowSaveButton =
     database?.allows_virtual_table_explore !== undefined;
@@ -139,6 +140,7 @@ const SaveQuery = ({
   const close = () => setShowSave(false);
 
   const onSaveWrapper = async () => {
+    if (isNameEmpty) return;
     logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
     await onSave(queryPayload(), query.id);
     close();
@@ -235,6 +237,7 @@ const SaveQuery = ({
             <Button
               buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
+              disabled={isNameEmpty}
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
