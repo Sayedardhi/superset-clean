@@ -282,6 +282,39 @@ describe('SavedQuery', () => {
     expect(mockOnSave).toHaveBeenCalledTimes(1);
   });
 
+  test('disables the save button when the name is empty', async () => {
+    const mockOnSave = jest.fn();
+
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+
+    expect(modalSaveBtn).toBeEnabled();
+
+    // Clearing the name disables the save button
+    userEvent.clear(nameInput);
+    await waitFor(() => expect(modalSaveBtn).toBeDisabled());
+
+    userEvent.click(modalSaveBtn);
+    expect(mockOnSave).not.toHaveBeenCalled();
+
+    // A whitespace-only name is also treated as empty
+    userEvent.type(nameInput, '   ');
+    await waitFor(() => expect(modalSaveBtn).toBeDisabled());
+
+    // Typing a valid name re-enables the button
+    userEvent.clear(nameInput);
+    userEvent.type(nameInput, 'My query');
+    await waitFor(() => expect(modalSaveBtn).toBeEnabled());
+  });
+
   test('handles save with a new tab that has no changes', async () => {
     const mockOnSave = jest.fn().mockResolvedValue(undefined);
 
